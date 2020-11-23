@@ -1,7 +1,7 @@
 import random
 import nltk
 from nltk.tokenize import RegexpTokenizer
-
+import torch
 
 def apply_word_order(tokens):
     random.shuffle(tokens)
@@ -91,3 +91,44 @@ def apply_simplify_response(tokens):
         if tag in ['NN', 'NNP', 'NNS', 'NNPS', 'VB', 'VBZ', 'VBN', 'VBG', 'VBD', 'IN']:
             arr.append(word)
     return " ".join(arr)
+
+
+def encode_truncate (tokenizer, s1, s2, ctx_token_len=25, res_token_len=25):
+    '''
+    This function is to truncate s1 and s2 before concatenating.
+    s1 is truncated at the start, whereas s2 is at the end of tokens.
+    '''
+    s1_tokens = tokenizer.tokenize(s1)
+    s2_tokens = tokenizer.tokenize(s2)
+    s1_length = len(s1_tokens)
+    s2_length = len(s2_tokens)
+
+    # make the s1 and s2 shorter together
+    if s1_length + s2_length > ctx_token_len + res_token_len:
+        if s1_length > ctx_token_len:
+            s1_tokens = s1_tokens[-self.ctx_token_len:]
+            s1 = " ".join(s1_tokens)
+        if s2_length > res_token_len:
+            s2_tokens = s2_tokens[:self.res_token_len]
+            s2 = " ".join(s2_tokens)
+
+    max_length = ctx_token_len + res_token_len
+    input_dict = tokenizer.encode_plus(s1, s2, max_length=max_length)
+
+    # process
+    input_ids = input_dict['input_ids']
+    token_type_ids = input_dict['token_type_ids']
+    input_len = len(input_ids)
+    padding_len = max_length - len(input_ids)
+
+    # add the padding
+    input_ids += [0] * padding_len
+    token_type_ids += [1] * padding_len
+    mask_tokens = [1] * input_len + [0] * padding_len
+    pos_ids = [i for i in range(input_len)] + [0]*padding_len
+
+    # return input_ids, token_type_ids, mask_tokens, pos_ids
+    return  torch.LongTensor(input_ids), \
+            torch.LongTensor(token_type_ids), \
+            torch.Tensor(mask_tokens), \
+            torch.LongTensor(pos_ids)

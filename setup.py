@@ -14,8 +14,8 @@ with open('README.md', encoding="utf8") as f:
 with open('LICENSE') as f:
     license = f.read()
 
-# with open('requirements.txt') as f:
-#     reqs = f.read()
+with open('requirements.txt') as f:
+    reqs = f.read()
 
 if __name__ == '__main__':
     setup(
@@ -40,8 +40,8 @@ if __name__ == '__main__':
         classifiers=[
             "Programming Language :: Python :: 3",
             "Operating System :: OS Independent"
-        ]
-        # install_requires=reqs.strip().split('\n'),
+        ],
+        install_requires=reqs.strip().split('\n'),
         # include_package_data=True,
         # test_suite='tests.suites.unittests',
     )

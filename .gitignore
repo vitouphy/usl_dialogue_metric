@@ -3,4 +3,7 @@ build
 dist
 *.egg-info
 __pycache__
-lightning_logs
+lightning_logs/
+checkpoints/
+dataset/
+*.pyc

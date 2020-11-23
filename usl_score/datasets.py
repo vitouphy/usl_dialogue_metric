@@ -1,9 +1,11 @@
 from data_utils import *
+import torch
 from torch.utils.data import Dataset
 from transformers import BertTokenizer
 
 class VUPDataset(Dataset):
-    def __init__(self, instances):
+    def __init__(self, instances, maxlen=25):
+        self.maxlen = maxlen
         self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
         self.instances = instances
 
@@ -52,7 +54,7 @@ class VUPDataset(Dataset):
         else:
             return x
 
-    def __getitem__(self, index, maxlen=25):
+    def __getitem__(self, index):
         instance = self.instances[index]
         label = 1
 
@@ -67,13 +69,85 @@ class VUPDataset(Dataset):
 
         instance = self.tokenizer.encode_plus(instance,
                                          add_special_tokens=True,
-                                         max_length=maxlen,
+                                         max_length=self.maxlen,
                                          pad_to_max_length=True,
                                          return_tensors="pt")
         input_ids = instance['input_ids']
         token_type_ids = instance['token_type_ids']
         attention_mask = instance['attention_mask']
         return input_ids, token_type_ids, attention_mask, label
+
+class NUPDataset(Dataset):
+    def __init__(self, instances, ctx_token_len=25, res_token_len=25):
+        self.ctx_token_len = ctx_token_len
+        self.res_token_len = res_token_len
+        self.instances = instances
+        self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+
+        # TODO: Build response pool
+        self._build_response_pool()
+
+    def _build_response_pool(self):
+        self.res_pool = []
+        for ctx, res in self.instances:
+            self.res_pool.append(res)
+
+    def _get_fake_response(self):
+        idx = random.randint(0, len(self.res_pool)-1)
+        return self.res_pool[idx]
+
+    def __len__(self):
+        return len(self.instances)
+
+    def __getitem__(self, index):
+        'Generates one sample of data'
+        ctx, res = self.instances[index]
+        label = 1
+
+        # negative sampling
+        if random.random() < 0.5:
+            res = self._get_fake_response()
+            label = 0
+
+        # Encode the input
+        input_ids, token_type_ids, mask_tokens, pos_ids = encode_truncate(
+            self.tokenizer,
+            ctx, res,
+            ctx_token_len=self.ctx_token_len,
+            res_token_len=self.res_token_len
+        )
+
+        return input_ids, token_type_ids, mask_tokens, pos_ids, label
+
+class MLMDataset(Dataset):
+    def __init__(self, instances, maxlen):
+        self.maxlen = maxlen
+        self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+        self.instances = instances
+
+    def __len__(self):
+        return len(self.instances)
+
+    def __getitem__(self, index):
+        instance = self.instances[index]
+
+        tokens = self.tokenizer.tokenize(instance)
+        instance = self.tokenizer.encode_plus(instance,
+                                         add_special_tokens=True,
+                                         max_length=self.maxlen,
+                                         pad_to_max_length=True,
+                                         return_tensors="pt")
+        input_ids = instance['input_ids']
+        token_type_ids = instance['token_type_ids']
+        attention_mask = instance['attention_mask']
+
+        # mask a token
+        sampling_length = min(len(tokens)+2, self.maxlen)
+        mask_idx = torch.LongTensor([random.randint(1,sampling_length-2)])
+        label = torch.LongTensor([input_ids[0][mask_idx].item()])
+        input_ids[0][mask_idx] = 103 # [MASK] token <- 103
+
+        return input_ids, token_type_ids, attention_mask, mask_idx, label
 
 
 if __name__ == "__main__":

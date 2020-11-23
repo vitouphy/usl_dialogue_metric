@@ -39,7 +39,7 @@ class VUPScorer(pl.LightningModule):
         instance = self.tokenizer.encode_plus(
             x,
             add_special_tokens=True,
-            max_length=self.args.maxlen,
+            max_length=self.args.res_token_len,
             pad_to_max_length=True,
             return_tensors="pt"
         )
@@ -50,7 +50,7 @@ class VUPScorer(pl.LightningModule):
         output = self(input_ids, token_type_ids, attention_mask)
         output = F.softmax(output, dim=1)
         output = output[:,1]
-        return output
+        return output.item()
 
     def training_step(self, batch, batch_nb):
         input_ids, token_type_ids, attention_mask, label = batch
@@ -64,14 +64,9 @@ class VUPScorer(pl.LightningModule):
         return {'loss': loss, 'log': tensorboard_logs}
 
     def validation_step(self, batch, batch_nb):
-        input_ids, token_type_ids, attention_mask, label = batch
-        # print ("Input IDS: ", input_ids.size())
-        input_ids = input_ids.squeeze(1).to(device)
-        token_type_ids = token_type_ids.squeeze(1).to(device)
-        attention_mask = attention_mask.squeeze(1).type(torch.FloatTensor).to(device)
-
-        output = self(input_ids, token_type_ids, attention_mask)
-        return {'val_loss': F.cross_entropy(output, label)}
+        output = self.training_step(batch, batch_nb)
+        loss = output['loss']
+        return {'val_loss': loss}
 
     def validation_epoch_end(self, outputs):
         avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
@@ -80,12 +75,12 @@ class VUPScorer(pl.LightningModule):
         return {'val_loss': avg_loss, 'log': tensorboard_logs}
 
     def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters(), lr=self.args.lr)
+        return torch.optim.Adam(self.parameters(), lr=self.args.lr, weight_decay=self.args.weight_decay)
 
 if __name__ == "__main__":
     args = {
         "lr": 1e-5,
-        "maxlen": 25
+        "res_token_len": 25
     }
     args = namedtuple('args', args.keys())(*args.values())
     model = VUPScorer(args)
