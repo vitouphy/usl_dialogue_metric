@@ -3,6 +3,22 @@ import nltk
 from nltk.tokenize import RegexpTokenizer
 import torch
 
+def read_dataset(path):
+    '''
+    - A line of sentence x -> Output a of sentence x
+    - A line of 2 sentences separated by tab -> a tuple of (c,r)
+    '''
+    arr = []
+    with open(path) as f:
+        for line in f:
+            sents = [ x.strip() for x in line.split('\t') ]
+            if len(sents) == 1:
+                arr.append(sents[0])
+            else:
+                arr.append(sents)
+        f.close()
+    return arr
+
 def apply_word_order(tokens):
     random.shuffle(tokens)
     return " ".join(tokens)
@@ -106,10 +122,10 @@ def encode_truncate (tokenizer, s1, s2, ctx_token_len=25, res_token_len=25):
     # make the s1 and s2 shorter together
     if s1_length + s2_length > ctx_token_len + res_token_len:
         if s1_length > ctx_token_len:
-            s1_tokens = s1_tokens[-self.ctx_token_len:]
+            s1_tokens = s1_tokens[-ctx_token_len:]
             s1 = " ".join(s1_tokens)
         if s2_length > res_token_len:
-            s2_tokens = s2_tokens[:self.res_token_len]
+            s2_tokens = s2_tokens[:res_token_len]
             s2 = " ".join(s2_tokens)
 
     max_length = ctx_token_len + res_token_len

@@ -1,5 +1,6 @@
 import math
 import torch
+import torch.nn as nn
 import pytorch_lightning as pl
 import torch.nn.functional as F
 from tqdm.auto import tqdm
@@ -10,13 +11,14 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 class MLMScorer(pl.LightningModule):
 
-    def __init__(self, args):
+    def __init__(self, hparams):
         super().__init__()
-        self.args = args
+        self.hparams = hparams
         self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
         vocab_size = len(self.tokenizer)
 
         self.bert = BertModel.from_pretrained('bert-base-uncased')
+        self.dropout = nn.Dropout(p=hparams.dropout, inplace=False)
         self.linear = torch.nn.Linear(768, vocab_size)
 
     def forward(self, input_ids, token_type_ids=None, attention_mask=None, mask_index=None):
@@ -25,27 +27,26 @@ class MLMScorer(pl.LightningModule):
         # get the state corresponding to the mask
         selector = mask_index.view(-1, 1, 1).expand(last_hidden_state.size(0), 1, last_hidden_state.size(2))
         hidden_state = last_hidden_state.gather(1, selector).squeeze()
+        hidden_state = self.dropout(hidden_state)
         output = self.linear(hidden_state)
         return output
+
 
     def predict(self, x):
 
         tokens = self.tokenizer.tokenize(x)
-        sampling_length = min(len(tokens)+2, self.args.res_token_len)
-
         instance = self.tokenizer.encode_plus(
             x,
             add_special_tokens=True,
-            max_length=self.args.res_token_len,
-            pad_to_max_length=True,
             return_tensors="pt"
         )
         input_ids = instance['input_ids'].to(device)
         token_type_ids = instance['token_type_ids'].to(device)
         attention_mask = instance['attention_mask'].type(torch.FloatTensor).to(device)
 
+        token_len = input_ids.size(1) # special tokens included
         score = 0 # log-likelihood score
-        for i in range(1, sampling_length-1): # ignore [CLS] and [SEP]
+        for i in range(1, token_len-1): # ignore [CLS] and [SEP]
             mask_index = torch.LongTensor([i]).to(device)
             label = torch.LongTensor([ input_ids[0][mask_index].item() ]).squeeze()
             input_ids[0][mask_index] = 103
@@ -60,12 +61,16 @@ class MLMScorer(pl.LightningModule):
             input_ids[0][mask_index] = label
 
         # negative log-likelihood
-        score = -score
+        log_likeli = score
+        nll = -log_likeli
+        nce = log_likeli / len(tokens)
+        ppl = math.exp(-nce)
 
-        # TODO: add other metrics like perplexity,  nce
-        # TODO: we might also need to do normalization
-
-        return score
+        return {
+            'nll': nll,
+            'nce': nce,
+            'ppl': ppl
+        }
 
     def training_step(self, batch, batch_nb):
         input_ids, token_type_ids, attention_mask, mask_index, label = batch
@@ -92,14 +97,14 @@ class MLMScorer(pl.LightningModule):
         return {'val_loss': avg_loss, 'log': tensorboard_logs}
 
     def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters(), lr=self.args.lr, weight_decay=self.args.weight_decay)
+        return torch.optim.Adam(self.parameters(), lr=self.hparams.lr, weight_decay=self.hparams.weight_decay)
 
 if __name__ == "__main__":
-    args = {
+    hparams = {
         "lr": 1e-5,
         "res_token_len": 25
     }
-    args = namedtuple('args', args.keys())(*args.values())
-    model = MLMScorer(args)
+    hparams = namedtuple('hparams', hparams.keys())(*hparams.values())
+    model = MLMScorer(hparams)
     score = model.predict("I want to go to school.ß")
     print (score)

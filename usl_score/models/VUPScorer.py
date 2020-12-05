@@ -11,11 +11,12 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 class VUPScorer(pl.LightningModule):
 
-    def __init__(self, args):
+    def __init__(self, hparams):
         super().__init__()
-        self.args = args
+        self.hparams = hparams
         self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
         self.bert = BertModel.from_pretrained('bert-base-uncased')
+        self.dropout = nn.Dropout(p=hparams.dropout, inplace=False)
         self.linear = torch.nn.Linear(768, 2)
 
     def forward(self, input_ids, token_type_ids=None, attention_mask=None):
@@ -32,6 +33,7 @@ class VUPScorer(pl.LightningModule):
         hidden_state = torch.where(attention_mask != 0, hidden_state, min_values)
         hidden_state, _ = hidden_state.max(dim=1)
 
+        hidden_state = self.dropout(hidden_state)
         output = self.linear(hidden_state)
         return output
 
@@ -39,7 +41,7 @@ class VUPScorer(pl.LightningModule):
         instance = self.tokenizer.encode_plus(
             x,
             add_special_tokens=True,
-            max_length=self.args.res_token_len,
+            max_length=self.hparams.res_token_len,
             pad_to_max_length=True,
             return_tensors="pt"
         )
@@ -75,14 +77,4 @@ class VUPScorer(pl.LightningModule):
         return {'val_loss': avg_loss, 'log': tensorboard_logs}
 
     def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters(), lr=self.args.lr, weight_decay=self.args.weight_decay)
-
-if __name__ == "__main__":
-    args = {
-        "lr": 1e-5,
-        "res_token_len": 25
-    }
-    args = namedtuple('args', args.keys())(*args.values())
-    model = VUPScorer(args)
-    score = model.predict("Hi")
-    print (score)
+        return torch.optim.Adam(self.parameters(), lr=self.hparams.lr, weight_decay=self.hparams.weight_decay)

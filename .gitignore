@@ -7,3 +7,6 @@ lightning_logs/
 checkpoints/
 dataset/
 *.pyc
+.DS_Store
+predictions
+.DS_Store

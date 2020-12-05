@@ -8,18 +8,19 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from transformers import BertModel, BertTokenizer, BertConfig
 import torch.nn.functional as F
-from usl_score.data_utils import encode_truncate
+from data_utils import encode_truncate
 import pytorch_lightning as pl
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 class NUPScorer(pl.LightningModule):
-    def __init__(self, args):
+    def __init__(self, hparams):
         super().__init__()
-        self.args = args
+        self.hparams = hparams
         self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
         self.bert = BertModel.from_pretrained('bert-base-uncased')
-        self.dropout = nn.Dropout(p=args.dropout, inplace=False)
+
+        self.dropout = nn.Dropout(p=hparams.dropout, inplace=False)
         self.next_sent = nn.Linear(768, 2)
         self.criterion = nn.CrossEntropyLoss(ignore_index=-1, reduction='mean')
 
@@ -49,8 +50,8 @@ class NUPScorer(pl.LightningModule):
     def predict(self, ctx, res):
 
         inputs = encode_truncate(self.tokenizer, ctx, res,
-            ctx_token_len=self.args.ctx_token_len,
-            res_token_len=self.args.res_token_len
+            ctx_token_len=self.hparams.ctx_token_len,
+            res_token_len=self.hparams.res_token_len
         )
 
         with torch.no_grad():
@@ -83,4 +84,4 @@ class NUPScorer(pl.LightningModule):
         return {'val_loss': avg_loss, 'log': tensorboard_logs}
 
     def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters(), lr=self.args.lr, weight_decay=self.args.weight_decay)
+        return torch.optim.Adam(self.parameters(), lr=self.hparams.lr, weight_decay=self.hparams.weight_decay)

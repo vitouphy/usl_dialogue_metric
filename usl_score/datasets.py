@@ -78,30 +78,28 @@ class VUPDataset(Dataset):
         return input_ids, token_type_ids, attention_mask, label
 
 class NUPDataset(Dataset):
-    def __init__(self, instances, ctx_token_len=25, res_token_len=25):
+    def __init__(self, contexts, responses, ctx_token_len=25, res_token_len=25):
         self.ctx_token_len = ctx_token_len
         self.res_token_len = res_token_len
-        self.instances = instances
+        self.contexts = contexts
+        self.responses = responses
         self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-
-        # TODO: Build response pool
         self._build_response_pool()
 
     def _build_response_pool(self):
-        self.res_pool = []
-        for ctx, res in self.instances:
-            self.res_pool.append(res)
+        self.res_pool = self.responses
 
     def _get_fake_response(self):
         idx = random.randint(0, len(self.res_pool)-1)
         return self.res_pool[idx]
 
     def __len__(self):
-        return len(self.instances)
+        return len(self.contexts)
 
     def __getitem__(self, index):
         'Generates one sample of data'
-        ctx, res = self.instances[index]
+        ctx = self.contexts[index]
+        res = self.responses[index]
         label = 1
 
         # negative sampling

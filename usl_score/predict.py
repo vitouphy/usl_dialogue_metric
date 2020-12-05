@@ -14,13 +14,13 @@ def predict(args, X_test, metric):
     Return an array of scores
     '''
     if metric == "VUP":
-        model = VUPScorer.load_from_checkpoint(checkpoint_path=args.weight_path, args=args)
+        model = VUPScorer.load_from_checkpoint(checkpoint_path=args.weight_path)
 
     elif metric == "NUP":
-        model = NUPScorer.load_from_checkpoint(checkpoint_path=args.weight_path, args=args)
+        model = NUPScorer.load_from_checkpoint(checkpoint_path=args.weight_path)
 
     elif metric == "MLM":
-        model = MLMScorer.load_from_checkpoint(checkpoint_path=args.weight_path, args=args)
+        model = MLMScorer.load_from_checkpoint(checkpoint_path=args.weight_path)
 
     else:
         raise Exception('Please select model from the following. VUP|NUP|MLM')
@@ -31,7 +31,7 @@ def predict(args, X_test, metric):
         scores = []
         for x in X_test:
             if isinstance(x, str): # has a single string
-                score = model.predict(x)
+                score = model.predict(x, normalize=args.normalize)
             else: # otherwise, a tuple of (c,r)
                 score = model.predict(*x)
             scores.append(score)
@@ -58,13 +58,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='USL-H inference script')
     parser.add_argument('--metric', type=str, required=True, help='Choose a metric to train. VUP|NUP|MLM')
     parser.add_argument('--weight-path', type=str, default='./checkpoints', help='Path to directory that stores the weight')
-    parser.add_argument('--dropout', type=float, default=0.0, help='dropout for the model')
+    parser.add_argument('--normalize', action='store_true', help='option for MLM whether to do normalization or not')
 
     # Dataset
     parser.add_argument('--test-path', type=str, required=True, help='Path to the directory of testing set')
-    parser.add_argument('--num-workers', type=int, default=1, help='number of worker for dataset')
-    parser.add_argument('--ctx-token-len', type=int, default=25, help='number of tokens for context')
-    parser.add_argument('--res-token-len', type=int, default=25, help='number of tokens for response')
+    # parser.add_argument('--num-workers', type=int, default=1, help='number of worker for dataset')
+    # parser.add_argument('--ctx-token-len', type=int, default=25, help='number of tokens for context')
+    # parser.add_argument('--res-token-len', type=int, default=25, help='number of tokens for response')
 
     args = parser.parse_args()
 
