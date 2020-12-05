@@ -1,5 +1,6 @@
 
 import torch
+import torch.nn as nn
 import pytorch_lightning as pl
 import torch.nn.functional as F
 from tqdm.auto import tqdm
