@@ -1,5 +1,6 @@
 import os
 import json
+import argparse
 from tqdm.auto import tqdm
 import numpy as np
 import torch
@@ -13,15 +14,15 @@ class Scorer:
 
     def __init__(self, args):
         self.args = args
-        vup_path = os.path.join(args.checkpoint_dir, 'BERT-VUP.ckpt')
-        nup_path = os.path.join(args.checkpoint_dir, 'BERT-NUP.ckpt')
-        mlm_path = os.path.join(args.checkpoint_dir, 'BERT-MLM.ckpt')
+        vup_path = os.path.join(args.weight_dir, 'BERT-VUP.ckpt')
+        nup_path = os.path.join(args.weight_dir, 'BERT-NUP.ckpt')
+        mlm_path = os.path.join(args.weight_dir, 'BERT-MLM.ckpt')
         self.vup_model = VUPScorer.load_from_checkpoint(checkpoint_path=vup_path).to(device)
         self.nup_model = NUPScorer.load_from_checkpoint(checkpoint_path=nup_path).to(device)
         self.mlm_model = MLMScorer.load_from_checkpoint(checkpoint_path=mlm_path).to(device)
 
         # load normalize score
-        norm_score_path = os.path.join(args.checkpoint_dir, 'mlm_minmax_score.json')
+        norm_score_path = os.path.join(args.weight_dir, 'mlm_minmax_score.json')
         self.norm_scores = None
         with open(norm_score_path) as f:
             self.norm_scores = json.load(f)
@@ -104,46 +105,3 @@ class Scorer:
     def get_distinct(self, responses):
         scores = distinct(responses)
         return scores
-
-
-if __name__ == "__main__":
-
-    args = {
-        "checkpoint_dir": './checkpoints/dailydialog',
-        'context_file': 'predictions/baseline_ctx.txt',
-        'response_file': 'predictions/baseline_res.txt',
-    }
-
-    
-    parser = argparse.ArgumentParser(description='USL-H inference script')
-    parser.add_argument('--weight-dir', type=str, default='./checkpoints', help='Path to directory that stores the weight')
-    parser.add_argument('--test-path', type=str, required=True, help='Path to the directory of testing set')
-
-    args = parser.parse_args()
-
-    scorer = Scorer(args)
-
-    #contexts = []
-    #responses = []
-
-    #with open(args.context_file) as f:
-    #    for line in f:
-    #        contexts.append(line)
-    #    f.close()
-    #with open(args.response_file) as f:
-    #    for line in f:
-    #        responses.append(line)
-    #    f.close()
-
-    contexts = ["The sky is green.", "The sky is green."]
-    responses = ["Table is not that great if you look from a distance.", "I like that burger."]
-    avg_score, scores = scorer.get_scores(contexts, responses, normalize=True)
-    print (avg_score)
-
-    with open('output_scores.json', 'w') as f:
-        for score in scores:
-            json_text = json.dumps(score)
-            f.write(json_text + '\n')
-        f.close()
-    print ('[!] evaluation complete')
-
