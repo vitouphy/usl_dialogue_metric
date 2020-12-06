@@ -26,7 +26,7 @@ If we end up evaluating dialogue system `A` and `B`, based only on the number, i
 So, the core idea to fix this problem is to structure them hierarchically based on their importance. The lower the hierarchy, the more important that aspect is. If the lower hierarchy fails, do not consider the remaining. Based on this concept, the USL-H combines these scores simply as `U + U*S + U*S*L`.
 
 <p align="center">
-    <img src="hierarchy.png" alt="drawing" width="250"/><br>
+    <img src="hiearchy.png" alt="hierarchy concept" width="250"/><br>
 </p>
 
 The reasons behind this structure are because:
