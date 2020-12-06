@@ -59,12 +59,7 @@ if __name__ == "__main__":
     parser.add_argument('--metric', type=str, required=True, help='Choose a metric to train. VUP|NUP|MLM')
     parser.add_argument('--weight-path', type=str, default='./checkpoints', help='Path to directory that stores the weight')
     parser.add_argument('--normalize', action='store_true', help='option for MLM whether to do normalization or not')
-
-    # Dataset
     parser.add_argument('--test-path', type=str, required=True, help='Path to the directory of testing set')
-    # parser.add_argument('--num-workers', type=int, default=1, help='number of worker for dataset')
-    # parser.add_argument('--ctx-token-len', type=int, default=25, help='number of tokens for context')
-    # parser.add_argument('--res-token-len', type=int, default=25, help='number of tokens for response')
 
     args = parser.parse_args()
 

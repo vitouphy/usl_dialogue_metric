@@ -49,7 +49,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Calculating min and max of MLM for normalizatiion')
     parser.add_argument('--weight-path', type=str, default='./checkpoints', help='Path to directory that stores the weight')
     parser.add_argument('--data-path', type=str, required=True, help='Path to the directory of training set')
-    parser.add_argument('--output-path', type=str, default='', help='Output path for the min max values')
+    parser.add_argument('--output-path', type=str, default='mlm_minmax_score.json', help='Output path for the min max values')
 
     args = parser.parse_args()
     xdata = read_dataset(args.data_path)

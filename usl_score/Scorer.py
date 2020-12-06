@@ -2,9 +2,12 @@ import os
 import json
 from tqdm.auto import tqdm
 import numpy as np
+import torch
 from collections import namedtuple
 from models import VUPScorer, NUPScorer, MLMScorer, distinct, composite_one_instance
 from data_utils import encode_truncate
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 class Scorer:
 
@@ -13,9 +16,9 @@ class Scorer:
         vup_path = os.path.join(args.checkpoint_dir, 'BERT-VUP.ckpt')
         nup_path = os.path.join(args.checkpoint_dir, 'BERT-NUP.ckpt')
         mlm_path = os.path.join(args.checkpoint_dir, 'BERT-MLM.ckpt')
-        self.vup_model = VUPScorer.load_from_checkpoint(checkpoint_path=vup_path, args=args)
-        self.nup_model = NUPScorer.load_from_checkpoint(checkpoint_path=nup_path, args=args)
-        self.mlm_model = MLMScorer.load_from_checkpoint(checkpoint_path=mlm_path, args=args)
+        self.vup_model = VUPScorer.load_from_checkpoint(checkpoint_path=vup_path).to(device)
+        self.nup_model = NUPScorer.load_from_checkpoint(checkpoint_path=nup_path).to(device)
+        self.mlm_model = MLMScorer.load_from_checkpoint(checkpoint_path=mlm_path).to(device)
 
         # load normalize score
         norm_score_path = os.path.join(args.checkpoint_dir, 'mlm_minmax_score.json')
@@ -106,31 +109,34 @@ class Scorer:
 if __name__ == "__main__":
 
     args = {
-        "dropout": 0.2,
-        "ctx_token_len": 50,
-        "res_token_len": 25,
         "checkpoint_dir": './checkpoints/dailydialog',
         'context_file': 'predictions/baseline_ctx.txt',
         'response_file': 'predictions/baseline_res.txt',
     }
 
-    args = namedtuple('args', args.keys())(*args.values())
+    
+    parser = argparse.ArgumentParser(description='USL-H inference script')
+    parser.add_argument('--weight-dir', type=str, default='./checkpoints', help='Path to directory that stores the weight')
+    parser.add_argument('--test-path', type=str, required=True, help='Path to the directory of testing set')
+
+    args = parser.parse_args()
+
     scorer = Scorer(args)
 
-    contexts = []
-    responses = []
+    #contexts = []
+    #responses = []
 
-    with open(args.context_file) as f:
-        for line in f:
-            contexts.append(line)
-        f.close()
-    with open(args.response_file) as f:
-        for line in f:
-            responses.append(line)
-        f.close()
+    #with open(args.context_file) as f:
+    #    for line in f:
+    #        contexts.append(line)
+    #    f.close()
+    #with open(args.response_file) as f:
+    #    for line in f:
+    #        responses.append(line)
+    #    f.close()
 
-    # contexts = ["The sky is green.", "The sky is green."]
-    # responses = ["Table is not that great if you look from a distance.", "I like that burger."]
+    contexts = ["The sky is green.", "The sky is green."]
+    responses = ["Table is not that great if you look from a distance.", "I like that burger."]
     avg_score, scores = scorer.get_scores(contexts, responses, normalize=True)
     print (avg_score)
 
@@ -141,7 +147,3 @@ if __name__ == "__main__":
         f.close()
     print ('[!] evaluation complete')
 
-    # contexts = ["The sky is green.", "The sky is green."]
-    # responses = ["Table is not that great if you look from a distance.", "Table is not that great if you look from a distance."]
-    # print (scorer.get_scores(contexts, responses, normalize=True))
-    # print (scorer.get_score("The sky is green.", "Table is not that great if you look from a distance.", normalize=True))
