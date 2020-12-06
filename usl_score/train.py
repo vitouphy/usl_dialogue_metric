@@ -38,7 +38,7 @@ def train(args, train_ctx, train_res, valid_ctx, valid_res):
     train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=args.batch_size, num_workers=args.num_workers)
     valid_dataloader = DataLoader(valid_dataset, shuffle=False, batch_size=args.batch_size, num_workers=args.num_workers)
 
-    trainer = pl.Trainer(max_epochs=args.max_epochs, weights_save_path=args.weight_path)
+    trainer = pl.Trainer(max_epochs=args.max_epochs, weights_save_path=args.weight_path, nb_sanity_val_steps=5)
     trainer.fit(model, train_dataloader, valid_dataloader)
     print ('[!] training complete')
 
@@ -56,7 +56,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='USL-H training script')
     parser.add_argument('--metric', type=str, required=True, help='Choose a metric to train. VUP|NUP|MLM')
-    parser.add_argument('--weight-path', type=str, default='./checkpoints', help='Path to directory that stores the weight')
+    parser.add_argument('--weight-path', type=str, default='', help='Path to directory that stores the weight')
 
     # Dataset
     parser.add_argument('--train-ctx-path', type=str, help='Path to context training set')

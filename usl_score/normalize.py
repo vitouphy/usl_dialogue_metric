@@ -54,7 +54,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     xdata = read_dataset(args.data_path)
 
-    model = MLMScorer.load_from_checkpoint(checkpoint_path=args.weight_path, args=args).to(device)
+    model = MLMScorer.load_from_checkpoint(checkpoint_path=args.weight_path).to(device)
     model.eval()
     print ('[!] loading model complete')
 

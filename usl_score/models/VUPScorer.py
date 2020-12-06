@@ -56,6 +56,7 @@ class VUPScorer(pl.LightningModule):
         return output.item()
 
     def training_step(self, batch, batch_nb):
+        batch = [ x.to(device) for x in batch ]
         input_ids, token_type_ids, attention_mask, label = batch
         input_ids = input_ids.squeeze(1).to(device)
         token_type_ids = token_type_ids.squeeze(1).to(device)

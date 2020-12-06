@@ -26,7 +26,7 @@ class MLMScorer(pl.LightningModule):
 
         # get the state corresponding to the mask
         selector = mask_index.view(-1, 1, 1).expand(last_hidden_state.size(0), 1, last_hidden_state.size(2))
-        hidden_state = last_hidden_state.gather(1, selector).squeeze()
+        hidden_state = last_hidden_state.gather(1, selector).squeeze(1)
         hidden_state = self.dropout(hidden_state)
         output = self.linear(hidden_state)
         return output
@@ -53,7 +53,7 @@ class MLMScorer(pl.LightningModule):
 
             # Apply to model
             output = self(input_ids, token_type_ids, attention_mask, mask_index)
-            probabs = F.softmax(output, dim=-1)
+            probabs = F.softmax(output, dim=-1).squeeze()
             log_likeli = torch.log(probabs[label])
             score += log_likeli.item()
 
@@ -73,12 +73,11 @@ class MLMScorer(pl.LightningModule):
         }
 
     def training_step(self, batch, batch_nb):
-        input_ids, token_type_ids, attention_mask, mask_index, label = batch
-        input_ids = input_ids.squeeze().to(device)
-        token_type_ids = token_type_ids.squeeze().to(device)
-        mask_index = mask_index.to(device)
-        attention_mask = attention_mask.squeeze().type(torch.FloatTensor).to(device)
-        label = label.squeeze()
+        input_ids, token_type_ids, attention_mask, mask_index, label = [ x.to(device) for x in batch ]
+        input_ids = input_ids.squeeze(1)
+        token_type_ids = token_type_ids.squeeze(1)
+        attention_mask = attention_mask.type(torch.FloatTensor).to(device)
+        label = label.squeeze(1)
 
         output = self(input_ids, token_type_ids, attention_mask, mask_index)
         loss = F.cross_entropy(output, label)
@@ -99,12 +98,3 @@ class MLMScorer(pl.LightningModule):
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=self.hparams.lr, weight_decay=self.hparams.weight_decay)
 
-if __name__ == "__main__":
-    hparams = {
-        "lr": 1e-5,
-        "res_token_len": 25
-    }
-    hparams = namedtuple('hparams', hparams.keys())(*hparams.values())
-    model = MLMScorer(hparams)
-    score = model.predict("I want to go to school.ß")
-    print (score)
