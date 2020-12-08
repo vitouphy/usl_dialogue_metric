@@ -1,6 +1,6 @@
 # Configuration Dialogue Evaluation Metric
 
-A repo for evaluating dialogue systems.
+This repository contains codes of evaluation metrics used in "[Deconstruct to Reconstruct a Configurable Evaluation Metric for Open-Domain Dialogue Systems](https://arxiv.org/abs/2011.00483)" paper.
 
 ## Metric
 - **Distinct-n**: measures the ratio of unique n-gram tokens to all generated n-gram tokens in every response.
@@ -46,7 +46,7 @@ python setup.py install
 ```
 
 ## Pre-Trained Models
-Link to the weights of VUP, NUP, MLM metric trained on [DailyDialog](https://arxiv.org/abs/1710.03957) dataset. Download the weight and unzip the files into `checkpoints` directory.
+Click [here](https://drive.google.com/file/d/1Kinwz0o473X_FVY6TmGAVRRGDXBo4CSO/view?usp=sharing) for link to the pre-trained weights of VUP, NUP, MLM metric trained on [DailyDialog](https://arxiv.org/abs/1710.03957) dataset. Download the weight and unzip the files into a directory.
 
 
 ## Usage
