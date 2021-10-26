@@ -48,6 +48,9 @@ python setup.py install
 ## Pre-Trained Models
 Click [here](https://drive.google.com/file/d/1Kinwz0o473X_FVY6TmGAVRRGDXBo4CSO/view?usp=sharing) for link to the pre-trained weights of VUP, NUP, MLM metric trained on [DailyDialog](https://arxiv.org/abs/1710.03957) dataset. Download the weight and unzip the files into a directory.
 
+## Human Annotation Data
+[Here](https://drive.google.com/file/d/15eBr-q3r9mag78gKK_MwLMILtLf2gVtn/view?usp=sharing) is the data we use to evaluate our metrics.
+
 
 ## Usage
 
